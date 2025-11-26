@@ -22,9 +22,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="font-bold text-lg">E-Comm Gen</Link>
             <nav className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
-              <Link href="/dashboard" className="hover:text-foreground">Products</Link>
               <Link href="/dashboard/create" className="hover:text-foreground">Create</Link>
-              <Link href="/dashboard/credits" className="hover:text-foreground">Buy Credits</Link>
               <Link href="/dashboard/account" className="hover:text-foreground">Account</Link>
             </nav>
           </div>
@@ -40,4 +38,3 @@ export default async function DashboardLayout({
     </div>
   )
 }
-

@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { model } from '@/lib/gemini'
 import { NextResponse } from 'next/server'
+import { analyzeImage, constructPrompt } from '@/lib/pipeline'
+
+export const maxDuration = 60 // Set timeout to 60 seconds for long generation
 
 export async function POST(request: Request) {
   try {
@@ -12,39 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Rate Limiting & Credits
-    // Check if user has credits
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('credits_balance')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) throw profileError
-
-    // Check Free Tier (1/week)
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-    const { count: weeklyCount, error: weeklyError } = await supabase
-      .from('generations')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', oneWeekAgo.toISOString())
-
-    if (weeklyError) throw weeklyError
-
-    // If free tier used up, check credits
-    if (weeklyCount && weeklyCount >= 1) {
-      if (!profile.credits_balance || profile.credits_balance < 1) {
-        return NextResponse.json(
-          { error: 'No credits remaining. Free weekly generation used.' },
-          { status: 402 } // Payment Required
-        )
-      }
-    }
-
-    // Rate Limit (Daily Hard Cap)
+    // 2. Rate Limiting (Daily Hard Cap Only - Credits Deferred)
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
 
@@ -65,12 +36,14 @@ export async function POST(request: Request) {
 
     // 3. Parse Input
     const formData = await request.formData()
-    const prompt = formData.get('prompt') as string
+    const userPrompt = formData.get('prompt') as string
     const imageFile = formData.get('image') as File
+    const quality = formData.get('quality') as string || 'high' // 'high' | 'super-high'
+    const quantity = parseInt(formData.get('quantity') as string || '1')
 
-    if (!prompt || !imageFile) {
+    if (!imageFile) {
       return NextResponse.json(
-        { error: 'Missing prompt or image' },
+        { error: 'Missing image' },
         { status: 400 }
       )
     }
@@ -84,78 +57,109 @@ export async function POST(request: Request) {
 
     if (uploadError) throw uploadError
 
-    // 5. Call Gemini API
+    // 5. Execute "Nano Banana" Pipeline
     const imageBuffer = await imageFile.arrayBuffer()
-    // @ts-ignore
-    const result = await model.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: prompt },
+    const mimeType = imageFile.type
+    
+    // Step A: Vision Analysis
+    const analysis = await analyzeImage(imageBuffer, mimeType)
+
+    // Step B: Architect (Prompt Engineering)
+    const { image_prompt } = await constructPrompt(analysis, userPrompt || '', quantity)
+
+    // Step C: Generation Loop
+    // NOTE: We use Text-to-Image here (only passing the prompt). 
+    // The Vision step already extracted the visual essence. 
+    // Passing the image directly (Image-to-Image) often triggers strict safety filters or edit-mode constraints.
+    
+    const modelName = quality === 'super-high' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
+    const generatedImages = []
+
+    for (let i = 0; i < quantity; i++) {
+      try {
+        // @ts-ignore
+        const result = await model.generateContent({
+          model: modelName,
+          contents: [
             {
-              inlineData: {
-                data: Buffer.from(imageBuffer).toString('base64'),
-                mimeType: imageFile.type,
-              },
+              role: 'user',
+              parts: [
+                { text: image_prompt },
+              ],
             },
           ],
-        },
-      ],
-    })
+        })
 
-    // The result itself contains the candidates
-    // Assuming the response contains the generated image data
-    // You'd likely need to parse the response to get the image binary
-    // Use "gemini-2.5-flash-image" specific response handling here.
-    // For MVP placeholder:
-    // @ts-ignore
-    const generatedImageBase64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "placeholder_base64"
+        // Find the part with inlineData
+        let generatedImageBase64: string | null = null;
+        
+        // @ts-ignore
+        const parts = result.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData && part.inlineData.data) {
+            generatedImageBase64 = part.inlineData.data;
+            break;
+          }
+        }
+        
+        if (!generatedImageBase64) {
+          console.error(`Failed to generate image ${i + 1}: No inline data found in any part.`)
+          console.log('Gemini Response:', JSON.stringify(result, null, 2))
+          continue
+        }
 
-    // 6. Upload Generated Image to Supabase
-    const generatedFileName = `${user.id}/${Date.now()}-generated.png`
-    const generatedBuffer = Buffer.from(generatedImageBase64, 'base64')
-    
-    const { data: genUploadData, error: genUploadError } = await supabase.storage
-      .from('generated_images')
-      .upload(generatedFileName, generatedBuffer, {
-        contentType: 'image/png',
-      })
-      
-    if (genUploadError) throw genUploadError
+        // Upload Generated Image
+        const genFileName = `${user.id}/${Date.now()}-${i}-generated.png`
+        const genBuffer = Buffer.from(generatedImageBase64, 'base64')
+        
+        const { data: genUploadData, error: genUploadError } = await supabase.storage
+          .from('generated_images')
+          .upload(genFileName, genBuffer, {
+            contentType: 'image/png',
+          })
+          
+        if (genUploadError) throw genUploadError
 
-    // 7. Record in DB & Deduct Credits
-    const { error: dbError } = await supabase.from('generations').insert({
-      user_id: user.id,
-      original_image_path: uploadData.path,
-      generated_image_path: genUploadData.path,
-      prompt: prompt,
-    })
+        // Record in DB
+        const { data: insertedGen, error: dbError } = await supabase.from('generations').insert({
+          user_id: user.id,
+          original_image_path: uploadData.path,
+          generated_image_path: genUploadData.path,
+          prompt: image_prompt,
+          // model: modelName, // TODO: Add column to DB schema later
+        }).select().single()
 
-    if (dbError) throw dbError
+        if (dbError) throw dbError
 
-    // Deduct credit if free tier was exhausted
-    if (weeklyCount && weeklyCount >= 1) {
-      const newBalance = (profile.credits_balance || 0) - 1
-      // Simple update, ideally use RPC for atomicity
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ credits_balance: newBalance })
-        .eq('id', user.id)
-      
-      if (updateError) {
-        console.error('Failed to deduct credit:', updateError)
-        // Don't fail the request, but log it critical
+        // Create signed URL for immediate display
+        const { data: urlData } = await supabase.storage
+          .from('generated_images')
+          .createSignedUrl(genUploadData.path, 3600) // 1 hour expiry
+
+        generatedImages.push({
+          id: insertedGen.id,
+          imageUrl: urlData?.signedUrl || null,
+          prompt: image_prompt,
+          createdAt: insertedGen.created_at,
+        })
+      } catch (genError) {
+        console.error(`Generation loop error for image ${i + 1}:`, genError)
       }
     }
 
-    return NextResponse.json({ success: true })
+    if (generatedImages.length === 0) {
+        return NextResponse.json(
+            { error: 'Failed to generate any images. Please try again.' },
+            { status: 500 }
+        )
+    }
 
-  } catch (error) {
+    return NextResponse.json({ success: true, images: generatedImages })
+
+  } catch (error: any) {
     console.error('Generation error:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     )
   }

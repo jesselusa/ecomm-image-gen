@@ -9,7 +9,7 @@ The application uses Supabase Auth for user authentication.
 ## Key Components
 - **`app/login/page.tsx`**: The main entry point for authentication.
 - **`components/auth/auth-form.tsx`**: Handles the form logic for both OAuth and Email auth.
-- **`lib/supabase/middleware.ts`**: Protects routes under `/dashboard`.
+- **`lib/supabase/session.ts`**: Protects routes under `/dashboard`.
 - **`app/dashboard/account/page.tsx`**: Allows users to manage their account (sign out, delete).
 
 ## Configuration
