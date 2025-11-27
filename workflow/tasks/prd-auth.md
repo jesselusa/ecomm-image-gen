@@ -1,7 +1,7 @@
 # PRD: Authentication System
 
 ## Introduction
-This PRD defines the authentication system for the E-Comm Image Gen App. It focuses on enabling secure, low-friction user access via Google OAuth AND Email/Password, integrated with Supabase. This system is the gateway for all subsequent features (uploading, generating, paying).
+This PRD defines the authentication system for Palette. It focuses on enabling secure, low-friction user access via Google OAuth AND Email/Password, integrated with Supabase. This system is the gateway for all subsequent features (uploading, generating, paying).
 
 ## Goals
 - Enable users to sign in/sign up using their Google account OR Email/Password.

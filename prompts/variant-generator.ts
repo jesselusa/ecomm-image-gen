@@ -53,3 +53,5 @@ export function generateVariantSpec(imageIndex: number, total: number): VariantS
   }
 }
 
+
+

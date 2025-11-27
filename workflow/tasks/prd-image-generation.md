@@ -1,7 +1,7 @@
 # PRD: Image Generation Feature
 
 ## Introduction
-This PRD defines the core image generation workflow for the E-Comm Image Gen App. It upgrades the basic generation endpoint to a sophisticated multi-step pipeline that analyzes the input image, engineers a high-quality prompt, and generates production-ready product photography using Google's Gemini models.
+This PRD defines the core image generation workflow for Palette. It upgrades the basic generation endpoint to a sophisticated multi-step pipeline that analyzes the input image, engineers a high-quality prompt, and generates production-ready product photography using Google's Gemini models.
 
 ## Goals
 -   Provide users with "High Quality" (Fast) and "Super High Quality" (Pro) generation options.

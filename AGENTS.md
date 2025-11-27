@@ -1,4 +1,4 @@
-# E-Comm Image Gen App
+# Palette
 
 This document serves as the source of truth for architectural decisions, development patterns, and operational procedures.
 

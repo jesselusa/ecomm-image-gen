@@ -36,3 +36,5 @@ Rules:
 - reference_image_summary: Single objective sentence about the product image.
 `
 
+
+

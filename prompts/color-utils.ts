@@ -60,3 +60,5 @@ export function extractColorHierarchy(palette: Color[]): {
   return { primary, secondary, tertiary }
 }
 
+
+

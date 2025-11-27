@@ -32,3 +32,5 @@ export const BEST_PRACTICES = {
   cameraControl: 'Control the Camera: Use photographic and cinematic language to control the composition. Terms like wide-angle shot, macro shot, low-angle perspective.',
 }
 
+
+

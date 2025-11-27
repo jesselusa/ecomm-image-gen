@@ -1,4 +1,4 @@
-# E-Comm Image Gen App
+# Palette
 
 A Next.js application for generating high-quality e-commerce product images using Google Gemini "Nano Banana" AI.
 
