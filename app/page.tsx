@@ -1,9 +1,25 @@
-import { LoginButton } from '@/components/auth/login-button'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { CheckCircle2, Sparkles } from 'lucide-react'
-import Image from 'next/image'
+import { HeroSection } from '@/components/marketing/hero-section'
+import { HowItWorks } from '@/components/marketing/how-it-works'
+import { BeforeAfterGallery } from '@/components/marketing/before-after-gallery'
+import { FeaturesSection } from '@/components/marketing/features-section'
+import { StatsSection } from '@/components/marketing/stats-section'
+import { FAQSection } from '@/components/marketing/faq-section'
+import { Footer } from '@/components/marketing/footer'
+import { Metadata } from 'next'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import Image from 'next/image'
+
+export const metadata: Metadata = {
+  title: 'Palette | AI Product Photography Generator',
+  description: 'Generate professional e-commerce product photos in seconds using advanced AI. Transform simple snapshots into studio-quality imagery. No credit card required to start.',
+  keywords: ['product image generation', 'e-commerce product photos', 'AI product photography', 'product background generator', 'shopify image generator'],
+  openGraph: {
+    title: 'Palette | AI Product Photography',
+    description: 'Transform your product photos with AI. Create studio-quality images in seconds.',
+    type: 'website',
+  },
+}
 
 export default function Home() {
   return (
@@ -11,87 +27,59 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span>E-Comm Gen</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <div className="relative h-12 w-40">
+              <Image 
+                src="/logo_16x9.jpeg" 
+                alt="Palette" 
+                fill 
+                className="object-cover object-left"
+                priority
+              />
+            </div>
+          </Link>
           <nav className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">Pricing</Button>
             <Link href="/login">
               <Button variant="ghost" size="sm">Login</Button>
             </Link>
             <Link href="/login">
-              <Button size="sm">Get Started</Button>
+              <Button size="sm">Get started</Button>
             </Link>
           </nav>
         </div>
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="container py-24 md:py-32">
-          <div className="flex flex-col items-center text-center gap-8">
-            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl max-w-3xl">
-              Generate Professional Product Photos in <span className="text-primary">Seconds</span>
-            </h1>
-            <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl">
-              Transform boring product shots into high-converting e-commerce imagery using advanced AI. No studio required.
+        <HeroSection />
+        <StatsSection />
+        <HowItWorks />
+        <div id="gallery">
+          <BeforeAfterGallery />
+        </div>
+        <div id="features">
+          <FeaturesSection />
+        </div>
+        <FAQSection />
+        
+        {/* Final CTA Section */}
+        <section className="container py-24 text-center">
+          <div className="bg-primary/5 rounded-3xl p-12 md:p-24 flex flex-col items-center gap-6 max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+              Ready to transform your product photos?
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl">
+              Join thousands of e-commerce brands creating professional imagery with AI.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/login">
-                <Button size="lg">Get Started</Button>
-              </Link>
-              <Button variant="outline" size="lg">View Examples</Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Feature Grid */}
-        <section className="container py-24 bg-muted/50 rounded-3xl">
-          <div className="grid gap-12 md:grid-cols-3">
-            <div className="flex flex-col gap-4">
-              <div className="p-2 w-fit rounded-lg bg-primary/10">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold">Studio Quality</h3>
-              <p className="text-muted-foreground">
-                Get professional lighting and composition without the expensive equipment.
-              </p>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="p-2 w-fit rounded-lg bg-primary/10">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold">Instant Backgrounds</h3>
-              <p className="text-muted-foreground">
-                Place your product in any setting imaginable with a simple text prompt.
-              </p>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="p-2 w-fit rounded-lg bg-primary/10">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold">Conversion Focused</h3>
-              <p className="text-muted-foreground">
-                Designed specifically for e-commerce platforms like Shopify and Etsy.
-              </p>
-            </div>
+            <Link href="/login">
+              <Button size="lg" className="h-12 px-8 text-lg">
+                Start generating for free
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-12">
-        <div className="container flex flex-col md:flex-row justify-between gap-8">
-          <div className="flex items-center gap-2 font-semibold">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span>E-Comm Gen</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            © 2025 E-Comm Gen. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

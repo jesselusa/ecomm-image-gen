@@ -41,6 +41,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  
+  /* Container customization */
+  --container-padding: 2rem;
+  --container-center: true;
 }
 
 :root {
@@ -118,5 +122,30 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Prevent image right-click and selection */
+  img {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: auto;
+  }
+  
+  /* Prevent drag on images */
+  img[draggable="false"] {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+}
+
+/* Ensure container always has padding and is centered */
+@layer components {
+  .container {
+    @apply mx-auto px-4 md:px-8 max-w-7xl;
   }
 }

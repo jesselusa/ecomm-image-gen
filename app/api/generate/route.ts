@@ -64,36 +64,55 @@ export async function POST(request: Request) {
     // Step A: Vision Analysis
     const analysis = await analyzeImage(imageBuffer, mimeType)
 
-    // Step B: Architect (Prompt Engineering)
-    const { image_prompt } = await constructPrompt(analysis, userPrompt || '', quantity)
-
-    // Step C: Generation Loop
-    // NOTE: We use Text-to-Image here (only passing the prompt). 
-    // The Vision step already extracted the visual essence. 
-    // Passing the image directly (Image-to-Image) often triggers strict safety filters or edit-mode constraints.
-    
+    // Step B & C: Generation Loop with Image-to-Image
+    // Generate unique prompt per image for diversity, then generate with original image
     const modelName = quality === 'super-high' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
     const generatedImages = []
+    
+    // Convert image buffer to base64 for Image-to-Image generation
+    const imageBase64 = Buffer.from(imageBuffer).toString('base64')
 
     for (let i = 0; i < quantity; i++) {
       try {
-        // @ts-ignore
-        const result = await model.generateContent({
+        // Step B: Architect (Prompt Engineering) - Generate unique prompt per image
+        const architectOutput = await constructPrompt(analysis, userPrompt || '', quantity, i)
+        const { image_prompt, render_prefs } = architectOutput
+
+        // Step C: Image-to-Image Generation
+        // Format prompt: short spec first, then main scene (inspired by n8n workflow)
+        
+        // Format final prompt: start with short spec, then main scene
+        const shortSpec = `Shot: ${render_prefs.camera}; Lighting: ${render_prefs.lighting}; Aspect ratio: ${render_prefs.aspect_ratio}; Style: ${render_prefs.output_style}.`
+        const formattedPrompt = `${shortSpec} ${image_prompt}`
+        
+        // Pass original image along with formatted prompt to preserve product design exactly
+    // @ts-ignore
+    const result = await model.generateContent({
           model: modelName,
-          contents: [
+      contents: [
+        {
+          role: 'user',
+          parts: [
             {
-              role: 'user',
-              parts: [
-                { text: image_prompt },
+              inlineData: {
+                    mimeType: mimeType,
+                    data: imageBase64,
+              },
+            },
+                { text: formattedPrompt },
               ],
             },
           ],
+          config: {
+            temperature: 0.7,
+            topP: 0.9,
+          },
         })
 
         // Find the part with inlineData
         let generatedImageBase64: string | null = null;
         
-        // @ts-ignore
+    // @ts-ignore
         const parts = result.candidates?.[0]?.content?.parts || [];
         for (const part of parts) {
           if (part.inlineData && part.inlineData.data) {
@@ -104,32 +123,32 @@ export async function POST(request: Request) {
         
         if (!generatedImageBase64) {
           console.error(`Failed to generate image ${i + 1}: No inline data found in any part.`)
-          console.log('Gemini Response:', JSON.stringify(result, null, 2))
+            console.log('AI Response:', JSON.stringify(result, null, 2))
           continue
         }
 
         // Upload Generated Image
         const genFileName = `${user.id}/${Date.now()}-${i}-generated.png`
         const genBuffer = Buffer.from(generatedImageBase64, 'base64')
-        
-        const { data: genUploadData, error: genUploadError } = await supabase.storage
-          .from('generated_images')
+    
+    const { data: genUploadData, error: genUploadError } = await supabase.storage
+      .from('generated_images')
           .upload(genFileName, genBuffer, {
-            contentType: 'image/png',
-          })
-          
-        if (genUploadError) throw genUploadError
+        contentType: 'image/png',
+      })
+      
+    if (genUploadError) throw genUploadError
 
         // Record in DB
         const { data: insertedGen, error: dbError } = await supabase.from('generations').insert({
-          user_id: user.id,
-          original_image_path: uploadData.path,
-          generated_image_path: genUploadData.path,
+      user_id: user.id,
+      original_image_path: uploadData.path,
+      generated_image_path: genUploadData.path,
           prompt: image_prompt,
           // model: modelName, // TODO: Add column to DB schema later
         }).select().single()
 
-        if (dbError) throw dbError
+    if (dbError) throw dbError
 
         // Create signed URL for immediate display
         const { data: urlData } = await supabase.storage

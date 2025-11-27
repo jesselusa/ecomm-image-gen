@@ -1,7 +1,8 @@
-import { CreditDisplay } from '@/components/dashboard/credit-display'
+import { EmailDropdown } from '@/components/dashboard/email-dropdown'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import Image from 'next/image'
 
 export default async function DashboardLayout({
   children,
@@ -19,16 +20,26 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container flex h-14 items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+            <div className="relative h-12 w-40">
+              <Image 
+                src="/logo_16x9.jpeg" 
+                alt="Palette" 
+                fill 
+                className="object-cover object-left"
+                priority
+              />
+            </div>
+          </Link>
+
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="font-bold text-lg">E-Comm Gen</Link>
             <nav className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
+              <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
               <Link href="/dashboard/create" className="hover:text-foreground">Create</Link>
-              <Link href="/dashboard/account" className="hover:text-foreground">Account</Link>
             </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <CreditDisplay />
-            <span className="text-sm text-muted-foreground">{user.email}</span>
+            <div className="flex items-center gap-4">
+              <EmailDropdown email={user.email || ''} />
+            </div>
           </div>
         </div>
       </header>

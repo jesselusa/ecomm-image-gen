@@ -5,8 +5,11 @@ import "./globals.css";
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "E-Comm Image Gen",
-  description: "Generate high-quality product images with AI",
+  title: "Palette | AI Product Photography",
+  description: "Generate professional product photography in seconds with Palette.",
+  icons: {
+    icon: '/mark.png',
+  },
 };
 
 export default function RootLayout({
